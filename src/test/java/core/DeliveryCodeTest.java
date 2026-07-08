@@ -1,6 +1,7 @@
 package core;
 
 import api.DeliveryData;
+import api.Specification;
 import io.restassured.http.ContentType;
 import org.junit.Test;
 import org.json.JSONObject;
@@ -25,8 +26,22 @@ public class DeliveryCodeTest {
         В данном API КЛАДР-коды только городов. В качестве тестовых занчений я выбрал список со
         значениями как реальных КЛАДР-кодов городов, так и ложных, и пустых значений.
         */
-        Dotenv dotenv = Dotenv.load();
-        List<String> queries = List.of("3100000100000", "3100400100000", "3600000100000", "6100000100000", "12345678", "3900000100000", "");
+
+        Dotenv dotenv = Dotenv.load(); //Загружаем .env
+
+        //Добавлены спецификаци для упрощения работы с RestAssured и запросами
+        Specification.installSpecification(Specification.responseSpecOK(),
+                Specification.requestSpec(URL, dotenv.get("API_KEY")));
+
+        List<String> queries = List.of(
+                "3100000100000",
+                "3100400100000",
+                "3600000100000",
+                "6100000100000",
+                "12345678",
+                "3900000100000",
+                ""
+        );
         Map<Integer, String> expectedCdekByIndex = Map.of(
                 0, "337",
                 1, "344",
@@ -40,9 +55,7 @@ public class DeliveryCodeTest {
             data.put("query", queries.get(i));
             List<DeliveryData> deliveries =
                     given()
-                    .header("Authorization", "Token " + dotenv.get("API_KEY"))
                     .body(data.toString())
-                    .contentType(ContentType.JSON)
                     .when()
                     .accept(ContentType.JSON)
                     .post(URL + "4_1/rs/findById/delivery")
