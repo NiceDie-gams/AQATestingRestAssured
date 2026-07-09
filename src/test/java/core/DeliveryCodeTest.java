@@ -2,12 +2,14 @@ package core;
 
 import api.DeliveryData;
 import api.Specification;
+import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.json.JSONObject;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.Assert.*;
@@ -17,6 +19,11 @@ import io.github.cdimascio.dotenv.Dotenv;
 public class DeliveryCodeTest {
 
     private final static String URL = "https://suggestions.dadata.ru/suggestions/api/";
+
+    @Before
+    public void setUp() {
+        RestAssured.reset();
+    }
 
     @Test
     public void checkDeliveryCode(){
@@ -58,7 +65,7 @@ public class DeliveryCodeTest {
                     .body(data.toString())
                     .when()
                     .accept(ContentType.JSON)
-                    .post(URL + "4_1/rs/findById/delivery")
+                    .post("4_1/rs/findById/delivery")
                     .then().log().status().and().log().body()
                     .extract().body()
                     .jsonPath().getList("suggestions.data", DeliveryData.class);
@@ -80,6 +87,5 @@ public class DeliveryCodeTest {
                 assertTrue("Для запроса " + queries.get(i) + " ответ не пуст, а должен быть пустым", deliveries.isEmpty());
             }
         }
-
     }
 }
