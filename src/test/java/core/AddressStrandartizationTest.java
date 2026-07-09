@@ -1,6 +1,7 @@
 package core;
 
 import api.AddressStandartizationData;
+import api.AddressStandartizationMinData;
 import api.DeliveryData;
 import api.Specification;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -11,6 +12,8 @@ import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +55,6 @@ public class AddressStrandartizationTest {
         */
 
         AddressStandartizationData element = given()
-                .given()
                 .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
                 .body(addresses)
                 .when()
@@ -63,5 +65,52 @@ public class AddressStrandartizationTest {
 
         assertTrue("Ошибка. Назавние региона не совпадает в result", element.getResult().contains(element.getRegion_with_type()));
         assertTrue("Ошибка. Название улицы не совпадает в result",element.getResult().contains(element.getStreet_with_type()));
+    }
+
+    @Test
+    public void correctRegionRecognizeTest(){
+        /*
+        Тест
+        Проверка на то верно ли программа опредлеяет регион для разных адресов из одного региона.
+        Создадим массив адресов из одного региона. Прогоним каждый адрес в запрос на DaData.ru.
+        В результате получим массив в котором все значения должны быть одинаковы, иначе тест провален.
+         */
+        Dotenv dotenv = Dotenv.load();
+
+        Specification.installSpecification(Specification.responseSpecOK(),
+                Specification.requestSpec(URL, dotenv.get("API_KEY")));
+
+        String[] queries = {
+                "киров ленина 15/2",
+                "киров октябрьский 118",
+                "киров карла либкнехта 182",
+                "кирово-чепецк первомайская 6",
+                "слободской советская 10",
+                "вятские поляны ленина 25",
+                "котельнич карла маркса 7",
+                "омутинск кирова 12",
+                "яранск свободы 30", //Если в Яранкс добавить еще одну р то город будет определяться как Москва, возможно можно сказать что тест нашел какую-то ошибку ведь по сути при каверкании названия ответ приходит просто null
+                "суна большевиков 5а"
+        };;
+
+        List<AddressStandartizationMinData> results = new ArrayList<>();
+        for (String query : queries) {
+            List<String> address = Arrays.asList(query);
+            results.add(given()
+                    .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
+                    .body(address)
+                    .when()
+                    .post("/v1/clean/address")
+                    .then().log().status().and().log().body()
+                    .extract().body()
+                    .jsonPath().getObject("[0]", AddressStandartizationMinData.class));
+            //Проверка достоверности региона внес ее сюда, чтобы как раз
+            //использовать для этого pojo-класс, чтобы можно было отследить строку с результатом преобразования
+            assertTrue("Регион определился неверно, вместо [Кировская обл] получено " +
+                    results.getLast().getRegion_with_type() +
+                    " |Резлуьтат преобразования: " + results.getLast().getResult(),
+                    results.getLast().getRegion_with_type().equals("Кировская обл"));
+        }
+
     }
 }
