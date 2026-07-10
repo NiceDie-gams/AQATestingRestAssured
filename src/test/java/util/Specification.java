@@ -1,4 +1,4 @@
-package api;
+package util;
 
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;

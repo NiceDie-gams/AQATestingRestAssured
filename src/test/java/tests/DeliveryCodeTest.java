@@ -1,18 +1,19 @@
-package core;
+package tests;
 
-import api.DeliveryData;
-import api.Specification;
+import dto.DeliveryData;
+import util.Specification;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.json.JSONObject;
 
 import java.util.*;
 
 import static io.restassured.RestAssured.given;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
@@ -20,7 +21,7 @@ public class DeliveryCodeTest {
 
     private final static String URL = "https://suggestions.dadata.ru/suggestions/api/";
 
-    @Before
+    @BeforeEach
     public void setUp() {
         RestAssured.reset();
     }
@@ -77,15 +78,65 @@ public class DeliveryCodeTest {
                 идет проверка на то коректыный ли ответ в assertEquals
                 */
                 String expected = expectedCdekByIndex.get(i);
-                assertFalse("Для запроса " + queries.get(i) + " ответ пуст, а должен содержать данные", deliveries.isEmpty());
+                assertFalse(deliveries.isEmpty(), "Для запроса " + queries.get(i) + " ответ не пуст, а должен быть пустым");
                 String actual = deliveries.get(0).getCdek_id();
-                assertEquals("Неверный cdek_id для запроса " + queries.get(i), expected, actual);
+                assertEquals (expected, actual, "Неверный cdek_id для запроса " + queries.get(i));
             } else {
                 /*
                 Если условие ложно то тело ответа должно быть пустым. Этот пункт проверяется в assertTrue
                 */
-                assertTrue("Для запроса " + queries.get(i) + " ответ не пуст, а должен быть пустым", deliveries.isEmpty());
+                assertTrue(deliveries.isEmpty(), "Для запроса " + queries.get(i) + " ответ не пуст, а должен быть пустым");
             }
         }
     }
-}
+
+    @Test
+    public void queryImportanceTest(){
+        /*
+        Тест
+        Проверка на необходимость поля query. Ответ должен прийти со статусом 400
+        */
+
+        Dotenv dotenv = Dotenv.load(); //Загружаем .env
+
+        //Ожидаемо что ответы прийдут со статусом 400 поэтому заменил на .responceSpec400()
+        Specification.installSpecification(Specification.responseSpec400(),
+                Specification.requestSpec(URL, dotenv.get("API_KEY")));
+        ValidatableResponse responce =
+                    given()
+                            .when()
+                            .accept(ContentType.JSON)
+                            .post("4_1/rs/findById/delivery")
+                            .then().log().status().and().log().body();
+    }
+
+    @Test
+    public void authorizationKeyImportanceTest(){
+        /*
+        Тест
+        Проверка на необходимость авторизации. Запуск без оправки заголовка авторизации.
+        Ожидаеймый статус ответа 401.
+        */
+
+            Dotenv dotenv = Dotenv.load(); //Загружаем .env
+
+        List<String> queries = List.of(
+                "3100000100000"
+        );
+
+        JSONObject data = new JSONObject();
+
+        data.put("query", queries.getFirst());
+
+            Response response =
+                    given()
+                            .contentType(ContentType.JSON)
+                            .body(data.toString())
+                            .when()
+                            .accept(ContentType.JSON)
+                            .post(URL + "4_1/rs/findById/delivery");
+            assertTrue( response.getStatusCode() == 401, "Ожидался 401 ответ, а пришел " + response.getStatusCode());
+        }
+    }
+
+

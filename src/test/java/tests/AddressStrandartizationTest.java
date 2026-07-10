@@ -1,32 +1,25 @@
-package core;
+package tests;
 
-import api.AddressStandartizationData;
-import api.AddressStandartizationMinData;
-import api.DeliveryData;
-import api.Specification;
+import dto.AddressStandartizationData;
+import dto.AddressStandartizationMinData;
+import util.Specification;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.lang.reflect.Array;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class AddressStrandartizationTest {
 
     private final static String URL = "https://cleaner.dadata.ru/api";
 
-    @Before
+    @BeforeEach
     public void setUp() {
         RestAssured.reset();
     }
@@ -63,8 +56,8 @@ public class AddressStrandartizationTest {
                 .extract().body()
                 .jsonPath().getObject("[0]", AddressStandartizationData.class);
 
-        assertTrue("Ошибка. Назавние региона не совпадает в result", element.getResult().contains(element.getRegion_with_type()));
-        assertTrue("Ошибка. Название улицы не совпадает в result",element.getResult().contains(element.getStreet_with_type()));
+        assertTrue(element.getResult().contains(element.getRegion_with_type()), "Ошибка. Назавние региона не совпадает в result");
+        assertTrue(element.getResult().contains(element.getStreet_with_type()), "Ошибка. Название улицы не совпадает в result");
     }
 
     @Test
@@ -106,10 +99,10 @@ public class AddressStrandartizationTest {
                     .jsonPath().getObject("[0]", AddressStandartizationMinData.class));
             //Проверка достоверности региона внес ее сюда, чтобы как раз
             //использовать для этого pojo-класс, чтобы можно было отследить строку с результатом преобразования
-            assertTrue("Регион определился неверно, вместо [Кировская обл] получено " +
-                    results.getLast().getRegion_with_type() +
-                    " |Резлуьтат преобразования: " + results.getLast().getResult(),
-                    results.getLast().getRegion_with_type().equals("Кировская обл"));
+            assertTrue(results.getLast().getRegion_with_type().equals("Кировская обл"),
+                    "Регион определился неверно, вместо [Кировская обл] получено " +
+                            results.getLast().getRegion_with_type() +
+                            " |Резлуьтат преобразования: " + results.getLast().getResult());
         }
 
     }

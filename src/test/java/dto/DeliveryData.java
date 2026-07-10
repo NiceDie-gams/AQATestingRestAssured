@@ -1,4 +1,4 @@
-package api;
+package dto;
 
 public class DeliveryData {
     private String kladr_id;
