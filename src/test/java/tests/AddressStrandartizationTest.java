@@ -2,6 +2,9 @@ package tests;
 
 import dto.AddressStandartizationData;
 import dto.AddressStandartizationMinData;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import util.Specification;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.restassured.RestAssured;
@@ -24,8 +27,10 @@ public class AddressStrandartizationTest {
         RestAssured.reset();
     }
 
-    @Test
-    public void checkAddressStandartizationCorrectStreet(){
+    @ParameterizedTest(name="Тестовый адрес {0}")
+    @MethodSource("util.TestDataLoader#getAddressForTest")
+    @DisplayName("Проверка соотеветствия адреса в разных полях ответа от API")
+    public void checkAddressStandartizationCorrectStreet(String address){
         /*
         Тестироваться будет API endpoint по которому передавая (почему-то) массив строк
         Суть данного теста в проверке, что по полученному значению в result после
@@ -35,11 +40,7 @@ public class AddressStrandartizationTest {
 
         Dotenv dotenv = Dotenv.load(); // Загрузка .env
 
-        Specification.installSpecification(Specification.responseSpecOK(),
-                Specification.requestSpec(URL, dotenv.get("API_KEY"))); //спецификации для легкой жизни
-
-        String[] query ={"мск сухонска 11/-89"};
-        List<String> addresses = Arrays.asList(query);
+        List<String> addresses = Arrays.asList(address);
 
         /*
         Странно что несмотря на то что параметр является массивом, при этом сам массив по сути передать нельзя
@@ -48,11 +49,14 @@ public class AddressStrandartizationTest {
         */
 
         AddressStandartizationData element = given()
+                .spec(Specification.requestSpec(URL, dotenv.get("API_KEY")))
                 .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
                 .body(addresses)
                 .when()
                 .post("/v1/clean/address")
-                .then().log().status().and().log().body()
+                .then()
+                .spec(Specification.responseSpecOK())
+                .log().status().and().log().body()
                 .extract().body()
                 .jsonPath().getObject("[0]", AddressStandartizationData.class);
 
@@ -60,8 +64,10 @@ public class AddressStrandartizationTest {
         assertTrue(element.getResult().contains(element.getStreet_with_type()), "Ошибка. Название улицы не совпадает в result");
     }
 
-    @Test
-    public void correctRegionRecognizeTest(){
+    @ParameterizedTest(name="Проверка адреса [{0}], корректный регион [{1}]")
+    @MethodSource("util.TestDataLoader#getAddressAndRegion")
+    @DisplayName("Проверка, что все адреса принадлежат одному региону")
+    public void correctRegionRecognizeTest(String address, String correctRegion){
         /*
         Тест
         Проверка на то верно ли программа опредлеяет регион для разных адресов из одного региона.
@@ -70,40 +76,26 @@ public class AddressStrandartizationTest {
          */
         Dotenv dotenv = Dotenv.load();
 
-        Specification.installSpecification(Specification.responseSpecOK(),
-                Specification.requestSpec(URL, dotenv.get("API_KEY")));
-
-        String[] queries = {
-                "киров ленина 15/2",
-                "киров октябрьский 118",
-                "киров карла либкнехта 182",
-                "кирово-чепецк первомайская 6",
-                "слободской советская 10",
-                "вятские поляны ленина 25",
-                "котельнич карла маркса 7",
-                "омутинск кирова 12",
-                "яранск свободы 30", //Если в Яранкс добавить еще одну р то город будет определяться как Москва, возможно можно сказать что тест нашел какую-то ошибку ведь по сути при каверкании названия ответ приходит просто null
-                "суна большевиков 5а"
-        };;
-
         List<AddressStandartizationMinData> results = new ArrayList<>();
-        for (String query : queries) {
-            List<String> address = Arrays.asList(query);
+        List<String> addressInArray = Arrays.asList(address);
             results.add(given()
+                    .spec(Specification.requestSpec(URL, dotenv.get("API_KEY")))
                     .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
-                    .body(address)
+                    .body(addressInArray)
                     .when()
                     .post("/v1/clean/address")
-                    .then().log().status().and().log().body()
+                    .then()
+                    .spec(Specification.responseSpecOK())
+                    .log().status().and().log().body()
                     .extract().body()
                     .jsonPath().getObject("[0]", AddressStandartizationMinData.class));
+
             //Проверка достоверности региона внес ее сюда, чтобы как раз
             //использовать для этого pojo-класс, чтобы можно было отследить строку с результатом преобразования
-            assertTrue(results.getLast().getRegion_with_type().equals("Кировская обл"),
-                    "Регион определился неверно, вместо [Кировская обл] получено " +
+            assertTrue(results.getLast().getRegion_with_type().equals(correctRegion),
+                    "Регион определился неверно, вместо Кировская обл получено " +
                             results.getLast().getRegion_with_type() +
                             " |Резлуьтат преобразования: " + results.getLast().getResult());
         }
 
     }
-}
