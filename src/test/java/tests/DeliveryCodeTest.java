@@ -3,9 +3,8 @@ package tests;
 import dto.DeliveryData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ArgumentsSource;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import util.ApiEndpoints;
 import util.Specification;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -21,14 +20,11 @@ import java.util.*;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
-import static util.TestDataLoader.getAllKladrAndCdek;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
 @DisplayName("Проверка работы API с КЛАДР-кодами городов")
-public class DeliveryCodeTest {
-
-    private final static String URL = "https://suggestions.dadata.ru/suggestions/api/";
+public class DeliveryCodeTest { //Инденпотентность разобраться!!!
 
     @BeforeEach
     public void setUp() {
@@ -36,9 +32,48 @@ public class DeliveryCodeTest {
     }
 
     @ParameterizedTest(name = "Проверка соответствия КЛАДР-кода {0} и СДЭК {1}")
-    @MethodSource("util.TestDataLoader#getAllKladrAndCdek")
+    @MethodSource("util.TestDataLoader#getAllCorrectKladrAndCdek")
     @DisplayName("Проверка соответствия КЛАДР-кода СДЭК-id")
     public void checkDeliveryCode(String kladrCode, String cdekCode){
+        /*
+        Тест
+        Проверка корректного ответа для различных query (в данном случае query - это КЛАДР-код).
+        В данном API КЛАДР-коды только городов. В качестве тестовых занчений я выбрал список со
+        значениями как реальных КЛАДР-кодов городов.
+        */
+
+        Dotenv dotenv = Dotenv.load(); //Загружаем .env
+
+        JSONObject data = new JSONObject(); //Так как принимает он оказывается только JSON
+
+        data.put("query", kladrCode);
+        List<DeliveryData> deliveries =
+                    given()
+                    .spec(Specification.requestSpec(ApiEndpoints.DELIVERY_ID_URL.getPath(), dotenv.get("API_KEY")))
+                    .body(data.toString())
+                    .when()
+                    .accept(ContentType.JSON)
+                    .post()
+                    .then()
+                    .spec(Specification.responseSpecOK())
+                    .log().status().and().log().body()
+                    .extract().body()
+                    .jsonPath().getList("suggestions.data", DeliveryData.class);
+
+                /*
+                Если условие выполнено значит, потенциально данный запрос должен вернуть
+                данные, далее идет проверка, что ответ не пуст в assertFalse, а после уже
+                идет проверка на то коректыный ли ответ в assertEquals
+                */
+                assertFalse(deliveries.isEmpty(), "Для запроса " + kladrCode + " ответ не пуст, а должен быть пустым");
+                String actual = deliveries.get(0).getCdek_id();
+                assertEquals (cdekCode, actual, "Неверный cdek_id для запроса " + kladrCode);
+        }
+
+    @ParameterizedTest(name="Проверка соответствия КЛАДР-кода {0} и СДЭК {1}")
+    @MethodSource("util.TestDataLoader#getAllIncorrectKladrAndCdek")
+    @DisplayName("Проверка обработки не корректных КЛАДР")
+    public void checkDeliveryCodeForIncorrectKladr(String kladr, String cdek) {
         /*
         Тест
         Проверка корректного ответа для различных query (в данном случае query - это КЛАДР-код).
@@ -50,36 +85,21 @@ public class DeliveryCodeTest {
 
         JSONObject data = new JSONObject(); //Так как принимает он оказывается только JSON
 
-        data.put("query", kladrCode);
+        data.put("query", kladr);
         List<DeliveryData> deliveries =
-                    given()
-                    .spec(Specification.requestSpec(URL, dotenv.get("API_KEY")))
-                    .body(data.toString())
-                    .when()
-                    .accept(ContentType.JSON)
-                    .post("4_1/rs/findById/delivery")
-                    .then()
-                    .spec(Specification.responseSpecOK())
-                    .log().status().and().log().body()
-                    .extract().body()
-                    .jsonPath().getList("suggestions.data", DeliveryData.class);
-
-            if ( !cdekCode.isEmpty() ) {
-                /*
-                Если условие выполнено значит, потенциально данный запрос должен вернуть
-                данные, далее идет проверка, что ответ не пуст в assertFalse, а после уже
-                идет проверка на то коректыный ли ответ в assertEquals
-                */
-                assertFalse(deliveries.isEmpty(), "Для запроса " + kladrCode + " ответ не пуст, а должен быть пустым");
-                String actual = deliveries.get(0).getCdek_id();
-                assertEquals (cdekCode, actual, "Неверный cdek_id для запроса " + kladrCode);
-            } else {
-                /*
-                Если условие ложно то тело ответа должно быть пустым. Этот пункт проверяется в assertTrue
-                */
-                assertTrue(deliveries.isEmpty(), "Для запроса " + kladrCode + " ответ не пуст, а должен быть пустым");
-            }
-        }
+                given()
+                        .spec(Specification.requestSpec(ApiEndpoints.DELIVERY_ID_URL.getPath(), dotenv.get("API_KEY")))
+                        .body(data.toString())
+                        .when()
+                        .accept(ContentType.JSON)
+                        .post()
+                        .then()
+                        .spec(Specification.responseSpecOK())
+                        .log().status().and().log().body()
+                        .extract().body()
+                        .jsonPath().getList("suggestions.data", DeliveryData.class);
+        assertTrue(deliveries.isEmpty(), "Для запроса " + kladr + " ответ не пуст, а должен быть пустым");
+    }
 
     @DisplayName("Проверка пустого значения для поля ввода(query)")
     @Test
@@ -93,10 +113,10 @@ public class DeliveryCodeTest {
 
         ValidatableResponse responce =
                     given()
-                            .spec(Specification.requestSpec(URL, dotenv.get("API_KEY")))
+                            .spec(Specification.requestSpec(ApiEndpoints.DELIVERY_ID_URL.getPath(), dotenv.get("API_KEY")))
                             .when()
                             .accept(ContentType.JSON)
-                            .post("4_1/rs/findById/delivery")
+                            .post()
                             .then()
                             .spec(Specification.responseSpec400())
                             .log().status().and().log().body();
@@ -124,7 +144,7 @@ public class DeliveryCodeTest {
                             .body(data.toString())
                             .when()
                             .accept(ContentType.JSON)
-                            .post(URL + "4_1/rs/findById/delivery");
+                            .post(ApiEndpoints.DELIVERY_ID_URL.getPath());
             assertTrue( response.getStatusCode() == 401, "Ожидался 401 ответ, а пришел " + response.getStatusCode());
         }
     }

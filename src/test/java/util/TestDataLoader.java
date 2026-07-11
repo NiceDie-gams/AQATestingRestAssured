@@ -74,13 +74,18 @@ public class TestDataLoader {
                 );
     }
 
-    public static Stream<Arguments> getAllKladrAndCdek(){
+    public static Stream<Arguments> getAllCorrectKladrAndCdek(){
         return Stream.of(
                 Arguments.of (getCorrectKladr(1), getCorrectCdek(1)),
                 Arguments.of (getCorrectKladr(2), getCorrectCdek(2)),
                 Arguments.of (getCorrectKladr(3), getCorrectCdek(3)),
                 Arguments.of (getCorrectKladr(4), getCorrectCdek(4)),
-                Arguments.of (getCorrectKladr(5), getCorrectCdek(5)),
+                Arguments.of (getCorrectKladr(5), getCorrectCdek(5))
+        );
+    }
+
+    public static Stream<Arguments> getAllIncorrectKladrAndCdek(){
+        return Stream.of(
                 Arguments.of (getIncorrectKladr(1), getIncorrectCdek(1)),
                 Arguments.of (getIncorrectKladr(2), getIncorrectCdek(2))
         );

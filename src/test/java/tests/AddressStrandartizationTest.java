@@ -5,11 +5,11 @@ import dto.AddressStandartizationMinData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import util.ApiEndpoints;
 import util.Specification;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -18,9 +18,8 @@ import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
 
 
+@DisplayName("Проверка API endpoint стандартизация адреса")
 public class AddressStrandartizationTest {
-
-    private final static String URL = "https://cleaner.dadata.ru/api";
 
     @BeforeEach
     public void setUp() {
@@ -49,11 +48,11 @@ public class AddressStrandartizationTest {
         */
 
         AddressStandartizationData element = given()
-                .spec(Specification.requestSpec(URL, dotenv.get("API_KEY")))
+                .spec(Specification.requestSpec(ApiEndpoints.ADDRESS_STANDARTIZATION_URL.getPath(), dotenv.get("API_KEY")))
                 .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
                 .body(addresses)
                 .when()
-                .post("/v1/clean/address")
+                .post()
                 .then()
                 .spec(Specification.responseSpecOK())
                 .log().status().and().log().body()
@@ -79,11 +78,11 @@ public class AddressStrandartizationTest {
         List<AddressStandartizationMinData> results = new ArrayList<>();
         List<String> addressInArray = Arrays.asList(address);
             results.add(given()
-                    .spec(Specification.requestSpec(URL, dotenv.get("API_KEY")))
+                    .spec(Specification.requestSpec(ApiEndpoints.ADDRESS_STANDARTIZATION_URL.getPath(), dotenv.get("API_KEY")))
                     .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
                     .body(addressInArray)
                     .when()
-                    .post("/v1/clean/address")
+                    .post()
                     .then()
                     .spec(Specification.responseSpecOK())
                     .log().status().and().log().body()
