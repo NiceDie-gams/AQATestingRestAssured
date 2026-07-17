@@ -8,6 +8,8 @@ import io.restassured.response.ValidatableResponse;
 import org.json.JSONObject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import util.ApiEndpoints;
@@ -22,7 +24,7 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
 
-
+@Execution(ExecutionMode.CONCURRENT)
 @DisplayName("Проверка API endpoint стандартизация адреса")
 public class AddressStrandartizationTest {
 
