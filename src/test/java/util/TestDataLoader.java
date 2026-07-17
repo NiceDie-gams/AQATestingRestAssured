@@ -63,6 +63,22 @@ public class TestDataLoader {
 
     public static String getExpectedFio(int index){return properties.getProperty("test.fio.output." + index);}
 
+    public static String getExpectedGender(int index){return properties.getProperty("test.fio.gender."+index);}
+
+    public static Stream<Arguments> getFioAndExpectedGender(){
+        return Stream.of(
+                Arguments.of(getFio(1), getExpectedGender(1)),
+                Arguments.of(getFio(2), getExpectedGender(2)),
+                Arguments.of(getFio(3), getExpectedGender(3)),
+                Arguments.of(getFio(4), getExpectedGender(4)),
+                Arguments.of(getFio(5), getExpectedGender(5))
+        );
+    }
+
+    public static Stream<String> getOneFioForTest(){
+        return Stream.of(getFio(1));
+    }
+
     public static Stream<Arguments> getFioAndExpectedFio(){
         return Stream.of(
                 Arguments.of(getFio(1), getExpectedFio(1)),
