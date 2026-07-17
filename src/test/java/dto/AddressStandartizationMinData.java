@@ -14,6 +14,10 @@ public class AddressStandartizationMinData {
 
     public AddressStandartizationMinData(){}
 
+    public boolean checkResultIsNull(){
+        return result==null;
+    }
+
     public String getResult() {
         return result;
     }

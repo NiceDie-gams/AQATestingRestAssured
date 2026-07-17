@@ -2,7 +2,12 @@ package tests;
 
 import dto.AddressStandartizationData;
 import dto.AddressStandartizationMinData;
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
+import org.json.JSONObject;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import util.ApiEndpoints;
@@ -26,10 +31,10 @@ public class AddressStrandartizationTest {
         RestAssured.reset();
     }
 
-    @ParameterizedTest(name="Тестовый адрес {0}")
+    @ParameterizedTest(name = "Тестовый адрес {0}")
     @MethodSource("util.TestDataLoader#getAddressForTest")
     @DisplayName("Проверка соотеветствия адреса в разных полях ответа от API")
-    public void checkAddressStandartizationCorrectStreet(String address){
+    public void checkAddressStandartizationCorrectStreet(String address) {
         /*
         Тестироваться будет API endpoint по которому передавая (почему-то) массив строк
         Суть данного теста в проверке, что по полученному значению в result после
@@ -63,10 +68,10 @@ public class AddressStrandartizationTest {
         assertTrue(element.getResult().contains(element.getStreet_with_type()), "Ошибка. Название улицы не совпадает в result");
     }
 
-    @ParameterizedTest(name="Проверка адреса [{0}], корректный регион [{1}]")
+    @ParameterizedTest(name = "Проверка адреса [{0}], корректный регион [{1}]")
     @MethodSource("util.TestDataLoader#getAddressAndRegion")
     @DisplayName("Проверка, что все адреса принадлежат одному региону")
-    public void correctRegionRecognizeTest(String address, String correctRegion){
+    public void correctRegionRecognizeTest(String address, String correctRegion) {
         /*
         Тест
         Проверка на то верно ли программа опредлеяет регион для разных адресов из одного региона.
@@ -77,24 +82,92 @@ public class AddressStrandartizationTest {
 
         List<AddressStandartizationMinData> results = new ArrayList<>();
         List<String> addressInArray = Arrays.asList(address);
-            results.add(given()
-                    .spec(Specification.requestSpec(ApiEndpoints.ADDRESS_STANDARTIZATION_URL.getPath(), dotenv.get("API_KEY")))
-                    .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
-                    .body(addressInArray)
-                    .when()
-                    .post()
-                    .then()
-                    .spec(Specification.responseSpecOK())
-                    .log().status().and().log().body()
-                    .extract().body()
-                    .jsonPath().getObject("[0]", AddressStandartizationMinData.class));
+        results.add(given()
+                .spec(Specification.requestSpec(ApiEndpoints.ADDRESS_STANDARTIZATION_URL.getPath(), dotenv.get("API_KEY")))
+                .header("X-Secret", dotenv.get("SECRET_KEY")) // Нативно добавил сюда секретку ибо запрос платный и требует секретного ключа
+                .body(addressInArray)
+                .when()
+                .post()
+                .then()
+                .spec(Specification.responseSpecOK())
+                .log().status().and().log().body()
+                .extract().body()
+                .jsonPath().getObject("[0]", AddressStandartizationMinData.class));
 
-            //Проверка достоверности региона внес ее сюда, чтобы как раз
-            //использовать для этого pojo-класс, чтобы можно было отследить строку с результатом преобразования
-            assertTrue(results.getLast().getRegion_with_type().equals(correctRegion),
-                    "Регион определился неверно, вместо Кировская обл получено " +
-                            results.getLast().getRegion_with_type() +
-                            " |Резлуьтат преобразования: " + results.getLast().getResult());
-        }
-
+        //Проверка достоверности региона внес ее сюда, чтобы как раз
+        //использовать для этого pojo-класс, чтобы можно было отследить строку с результатом преобразования
+        assertTrue(results.getLast().getRegion_with_type().equals(correctRegion),
+                "Регион определился неверно, вместо Кировская обл получено " +
+                        results.getLast().getRegion_with_type() +
+                        " |Резлуьтат преобразования: " + results.getLast().getResult());
     }
+
+    @DisplayName("Проверка пустого значения для поля ввода(query)")
+    @Test
+    public void queryImportanceTest() {
+        /*
+        Тест
+        Проверка на необходимость поля query. Ответ должен прийти со статусом 400
+        */
+
+        Dotenv dotenv = Dotenv.load(); //Загружаем .env
+
+        ValidatableResponse responce =
+                given()
+                        .header("X-Secret", dotenv.get("SECRET_KEY"))
+                        .spec(Specification.requestSpec(ApiEndpoints.ADDRESS_STANDARTIZATION_URL.getPath(), dotenv.get("API_KEY")))
+                        .when()
+                        .accept(ContentType.JSON)
+                        .post()
+                        .then()
+                        .spec(Specification.responseSpec400())
+                        .log().status().and().log().body();
+    }
+
+    @ParameterizedTest(name="Проверка доступа к API без авторизации")
+    @MethodSource("util.TestDataLoader#getAddressForTest")
+    @DisplayName("Проверка необходимости авторизации для доступа к API")
+    public void checkAuthNecesserity(String address) {
+
+        Dotenv dotenv = Dotenv.load();
+
+        List<AddressStandartizationMinData> results = new ArrayList<>();
+        List<String> addressInArray = Arrays.asList(address);
+
+        ValidatableResponse response =
+                given()
+                        .contentType(ContentType.JSON)
+                        .body(addressInArray)
+                        .when()
+                        .accept(ContentType.JSON)
+                        .post(ApiEndpoints.ADDRESS_STANDARTIZATION_URL.getPath())
+                        .then()
+                        .spec(Specification.responseSpec401());
+    }
+
+    @ParameterizedTest(name="Проверка некорректного вода строки адреса [{0}]")
+    @MethodSource("util.TestDataLoader#getIncorrectAddressAndEmptyResult")
+    @DisplayName("Проверка некорретных значений адреса")
+    public void checkIncorrectAddressStandartization(String address, String result){
+        Dotenv dotenv = Dotenv.load();
+
+        List<AddressStandartizationMinData> results = new ArrayList<>();
+        List<String> addressInArray = Arrays.asList(address);
+
+        results.add(given()
+                .spec(Specification.requestSpec(ApiEndpoints.ADDRESS_STANDARTIZATION_URL.getPath(), dotenv.get("API_KEY")))
+                .header("X-Secret", dotenv.get("SECRET_KEY"))
+                .body(addressInArray)
+                .when()
+                .post()
+                .then()
+                .spec(Specification.responseSpecOK())
+                .log().status().and().log().body()
+                .extract().body()
+                .jsonPath().getObject("[0]", AddressStandartizationMinData.class));
+
+        assertTrue(results.getLast().checkResultIsNull(), // Добавил метод в класс не знаю стоит так делать или нет
+                "Ошибка результат не пустой." +
+                        " |Резлуьтат преобразования: " + results.getLast().getResult());
+    }
+}

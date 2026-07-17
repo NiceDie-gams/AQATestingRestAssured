@@ -30,6 +30,20 @@ public class Specification {
                 .build();
     }
 
+    public static ResponseSpecification responseSpec401(){
+        return new ResponseSpecBuilder()
+                .expectStatusCode(401)
+                .expectContentType(ContentType.JSON)
+                .build();
+    }
+
+    public static ResponseSpecification responseSpec403(){
+        return new ResponseSpecBuilder()
+                .expectStatusCode(403)
+                .expectContentType(ContentType.JSON)
+                .build();
+    }
+
     public static void installSpecification(ResponseSpecification response, RequestSpecification request){
         RestAssured.requestSpecification = request;
         RestAssured.responseSpecification = response;

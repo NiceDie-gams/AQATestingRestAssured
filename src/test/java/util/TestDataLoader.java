@@ -55,8 +55,35 @@ public class TestDataLoader {
         return properties.getProperty("correct.region");
     }
 
-    public static Stream<Arguments> getAddressForTest(){
-        return Stream.of(Arguments.of(properties.getProperty("test.region.address")));
+    public static String getIncorrectAddress(int index) {return properties.getProperty("test.incorrect.address."+index);}
+
+    public static String getEmptyResult(){return properties.getProperty("empty.result");}
+
+    public static String getFio(int index){return properties.getProperty("test.fio." + index);}
+
+    public static String getExpectedFio(int index){return properties.getProperty("test.fio.output." + index);}
+
+    public static Stream<Arguments> getFioAndExpectedFio(){
+        return Stream.of(
+                Arguments.of(getFio(1), getExpectedFio(1)),
+                Arguments.of(getFio(2), getExpectedFio(2)),
+                Arguments.of(getFio(3), getExpectedFio(3)),
+                Arguments.of(getFio(4), getExpectedFio(4)),
+                Arguments.of(getFio(5), getExpectedFio(5))
+        );
+    }
+
+    public static Stream<String> getAddressForTest(){
+        return Stream.of(properties.getProperty("test.region.address"));
+    }
+
+    public static Stream<Arguments> getIncorrectAddressAndEmptyResult(){
+        return Stream.of(
+                Arguments.of(getIncorrectAddress(1), getEmptyResult()),
+                Arguments.of(getIncorrectAddress(2), getEmptyResult()),
+                Arguments.of(getIncorrectAddress(3), getEmptyResult()),
+                Arguments.of(getIncorrectAddress(4), getEmptyResult())
+        );
     }
 
     public static Stream<Arguments> getAddressAndRegion(){
@@ -90,4 +117,5 @@ public class TestDataLoader {
                 Arguments.of (getIncorrectKladr(2), getIncorrectCdek(2))
         );
     }
+
 }
